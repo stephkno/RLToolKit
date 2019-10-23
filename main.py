@@ -1,5 +1,5 @@
 from models import Actor
-from utils import Coach
+from coach import Coach
 import torch
 import gym
 import boardgame2
