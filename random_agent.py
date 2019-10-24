@@ -8,27 +8,28 @@ import boardgame2
 import torch
 import numpy
 
-n_agents = 2
-n_episodes = 10
+N_AGENTS = 2
+N_EPISODES = 10
+N_EPOCHS = 1
 
 coach = Coach(env="CartPole-v0",
               loss_fn=Coach.reinforce,
               lr=rate,
               optim=torch.optim.Adam,
-              n_agents=n_agents
+              n_agents=N_AGENTS
               )
 
 target_agent = RandomAgent(actions=coach.actions)
 
 agent = Agent_Controller(
             batch=batch_size,
-            n_agents=n_agents,
+            n_agents=N_AGENTS,
             agent=target_agent
             )
 
-for epoch in range(n_epochs):
-    for episode in range(n_episodes):
+for epoch in range(N_EPOCHS):
+    for episode in range(N_EPISODES):
         returns = coach.run_episode(agent, return_tau=True, render=True)
         print(returns)
 
-    loss = coach.train(gamma=discount, epochs=n_epochs)
+    loss = coach.train(gamma=discount, epochs=N_EPOCHS)
