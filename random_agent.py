@@ -1,4 +1,3 @@
-#!/Users/stephen/miniconda3/bin/python
 from coach import Coach
 from controllers import Agent_Controller
 from agents import RandomAgent
