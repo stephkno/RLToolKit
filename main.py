@@ -1,4 +1,3 @@
-#!/Users/stephen/miniconda3/bin/python
 import models
 from utils import Coach
 import torch
