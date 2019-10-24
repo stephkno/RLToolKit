@@ -1,5 +1,6 @@
-from models import Actor
-from coach import Coach
+#!/Users/stephen/miniconda3/bin/python
+import models
+from utils import Coach
 import torch
 import gym
 import boardgame2
@@ -8,29 +9,33 @@ import numpy
 
 discount = 1.0
 batch_size = 64
-agents = 3
+n_agents = 3
+n_episodes = 10
+n_epochs = 100
+rate = 0.0001
 
-actor = Actor(torch.optim.Adam,
-            lr=0.0001,
-            gamma=discount,
+agent = models.Agent_Controller(
             batch=batch_size,
-            agents=agents,
+            agents=n_agents,
             model=torch.nn.Sequential(
-            torch.nn.Linear(10, 100),
-            torch.nn.Tanh(),
-            torch.nn.Linear(100, 3)))
+                    torch.nn.Linear(4, 128),
+                    torch.nn.Tanh(),
+                    torch.nn.Linear(128, 3)
+            ),
+            agent_type=models.Softmax_Agent
+            )
 
-env = Coach(env="CartPole-v0", n=agents)
-state = env.reset()
+coach = Coach(env="CartPole-v0",
+              target_agent=agent,
+              loss_fn=Coach.reinforce,
+              lr=rate,
+              optim=torch.optim.Adam,
+              n_agents=n_agents
+              )
 
-returns = env.step([0,0,0,0])
-print(returns)
-observation = torch.tensor(numpy.array(returns))
+for epoch in range(n_epochs):
+    for episode in range(n_episodes):
+        returns = coach.run_episode(return_tau=True, render=False)
+        print(returns)
 
-logit = actor.forward(observation)
-dist = torch.distributions.Categorical(logit)
-action = dist.sample()
-logit = -dist.log_prob(action)
-
-print(logit)
-env.push({"state":state, "logit":logit, "reward":reward})
+    loss = coach.train(gamma=discount, epochs=n_epochs)
