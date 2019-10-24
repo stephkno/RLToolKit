@@ -10,6 +10,10 @@ class Coach():
         self.n_agents = n_agents
         self.dones = [False for _ in range(n_agents)]
         self.length = 0
+        self.loss_fn=loss_fn
+        self.lr=lr
+        self.optim=optim
+        self.target_agent=target_agent
 
         #create environments
         for _ in range(self.n_agents):
