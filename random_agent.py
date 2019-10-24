@@ -8,12 +8,8 @@ import boardgame2
 import torch
 import numpy
 
-discount = 0.99
-batch_size = 64
 n_agents = 2
 n_episodes = 10
-n_epochs = 100
-rate = 0.0001
 
 coach = Coach(env="CartPole-v0",
               loss_fn=Coach.reinforce,
