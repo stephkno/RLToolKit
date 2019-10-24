@@ -6,7 +6,7 @@ import numpy as np
 ### Handles OpenAI Gym environments
 #
 class Coach():
-    def __init__(self, env, loss_fn, lr, optim, n_agents, target_agent=None):
+    def __init__(self, env, loss_fn, optim, n_agents, lr=0.1, target_agent=None):
 
         if n_agents < 1:
             raise Exception("Needs at least 1 agent.")
@@ -30,6 +30,9 @@ class Coach():
     #reset all environments
     def reset(self):
         return [env.reset() for env in self.envs]
+
+    def end(self):
+        [env.close() for env in self.envs]
 
     #agent takes a step
     def step(self, actions):
