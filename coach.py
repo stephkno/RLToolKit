@@ -59,8 +59,8 @@ class Coach():
     #generate single trajectory
     def run_episode(self, agent, return_tau=False, render=False):
         state = self.reset()
-        steps = np.array([0 for _ in range(self.n_agents)])
-        rewards = [0 for _ in range(self.n_agents)]
+        steps = np.zeros(self.n_agents)
+        rewards = np.expand_dims(np.zeros(self.n_agents),axis=0)
 
         actions = agent.step(state)
         while True:
@@ -68,7 +68,7 @@ class Coach():
             observation, reward, done, info = state
             dones = [not d for d in done]
 
-            steps += dones * np.array([1 for _ in range(self.n_agents)])
+            steps += dones * np.ones(self.n_agents)
             rewards += dones * np.array([reward for _ in range(self.n_agents)])
 
             if render:
