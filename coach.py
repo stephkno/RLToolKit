@@ -6,7 +6,6 @@ class Coach():
     def __init__(self, env, target_agent, loss_fn, lr, optim, n_agents):
         super(Coach, self).__init__()
         self.name = env
-        self.envs = []
         self.n_agents = n_agents
         self.dones = [False for _ in range(n_agents)]
         self.length = 0
@@ -16,17 +15,11 @@ class Coach():
         self.target_agent=target_agent
 
         #create environments
-        for _ in range(self.n_agents):
-            self.envs.append(gym.make(self.name))
+        self.envs = [gym.make(self.name) for _ in range(self.n_agents)]
 
     #reset all environments
     def reset(self):
-        states = []
-
-        for env in self.envs:
-            states.append(env.reset())
-
-        return states
+        return [env.reset() for _ in self.envs]
 
     #agent takes a step
     def step(self, actions):
@@ -46,11 +39,14 @@ class Coach():
         #send each return as separate vecs
         return obs, rewards, dones, infos
 
+    #loss function for vanilla reinforce algorithm
     def reinforce(self, gamma):
         pass
 
+    #generate single trajectory
     def run_episode(self, return_tau=False, render=False):
         pass
 
+    #run target parameter update with loss fn
     def train(self, gamma=0.99, epochs=10):
         pass
