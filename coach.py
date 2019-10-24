@@ -1,25 +1,35 @@
 import gym
+import numpy as np
 #
-# Reinforcement Learning Coach
+## Reinforcement Learning Coach
+#
+### Handles OpenAI Gym environments
 #
 class Coach():
-    def __init__(self, env, target_agent, loss_fn, lr, optim, n_agents):
+    def __init__(self, env, loss_fn, lr, optim, n_agents, target_agent=None):
+
+        if n_agents < 1:
+            raise Exception("Needs at least 1 agent.")
+
         super(Coach, self).__init__()
         self.name = env
         self.n_agents = n_agents
         self.dones = [False for _ in range(n_agents)]
         self.length = 0
-        self.loss_fn=loss_fn
-        self.lr=lr
-        self.optim=optim
-        self.target_agent=target_agent
+
+        if not target_agent == None:
+            self.loss_fn=loss_fn
+            self.lr=lr
+            self.optim=optim(lr=self.lr, params=self.target_agent.params())
+            self.target_agent=target_agent
 
         #create environments
         self.envs = [gym.make(self.name) for _ in range(self.n_agents)]
+        self.actions = self.envs[0].action_space.n
 
     #reset all environments
     def reset(self):
-        return [env.reset() for _ in self.envs]
+        return [env.reset() for env in self.envs]
 
     #agent takes a step
     def step(self, actions):
@@ -44,8 +54,26 @@ class Coach():
         pass
 
     #generate single trajectory
-    def run_episode(self, return_tau=False, render=False):
-        pass
+    def run_episode(self, agent, return_tau=False, render=False):
+        state = self.reset()
+        steps = np.array([0 for _ in range(self.n_agents)])
+        rewards = [0 for _ in range(self.n_agents)]
+
+        actions = agent.step(state)
+        while True:
+            state = self.step(actions)
+            observation, reward, done, info = state
+            dones = [not d for d in done]
+
+            steps += dones * np.array([1 for _ in range(self.n_agents)])
+            rewards += dones * np.array([reward for _ in range(self.n_agents)])
+
+            if render:
+                [env.render() for env in self.envs]
+            if np.prod(done, 0):
+                break
+
+        return rewards, steps
 
     #run target parameter update with loss fn
     def train(self, gamma=0.99, epochs=10):
