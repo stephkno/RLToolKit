@@ -30,5 +30,3 @@ for epoch in range(N_EPOCHS):
     for episode in range(N_EPISODES):
         returns = coach.run_episode(agent, return_tau=True, render=True)
         print(returns)
-
-    loss = coach.train(gamma=discount, epochs=N_EPOCHS)
