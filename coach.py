@@ -1,8 +1,9 @@
 import gym
+import datetime
 import numpy as np
 #
 ## Reinforcement Learning Coach
-#
+###
 ### Handles OpenAI Gym environments
 #
 class Coach():
@@ -54,15 +55,15 @@ class Coach():
 
     #loss function for vanilla reinforce algorithm
     def reinforce(self, gamma):
-        pass
+        raise NotImplementedError
 
     #generate single trajectory
     def run_episode(self, agent, return_tau=False, render=False):
         state = self.reset()
         steps = np.zeros(self.n_agents)
         rewards = np.expand_dims(np.zeros(self.n_agents),axis=0)
-
         actions = agent.step(state)
+
         while True:
             state = self.step(actions)
             observation, reward, done, info = state
@@ -80,4 +81,4 @@ class Coach():
 
     #run target parameter update with loss fn
     def train(self, gamma=0.99, epochs=10):
-        pass
+        raise NotImplementedError
