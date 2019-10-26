@@ -10,7 +10,8 @@ import time
 #todo: implement episode replay
 #todo: implement update NEC w/ belleman
 #todo: implement neural trainer
-#
+#class Actor(torch.nn.Module)
+
 class Episodic_Controller():
     def __init__(self, k, n_actions=0):
         super(Episodic_Controller, self).__init__()
@@ -28,7 +29,7 @@ class Episodic_Controller():
         return actions
 
     def write(self, obv):
-        obv = obv.squeeze(0)
+        obv = obv
         #initialize state pair
         #start zero or random values?
         self.brain[obv] = np.zeros(self.actions)
@@ -45,7 +46,7 @@ class Episodic_Controller():
     #reading and finding nearest neighbors
     #taking action, env step, return rewards
     def step(self, obv):
-        obv = torch.tensor(obv)
+        obv = torch.tensor(obv).int().view(-1)
         if obv not in self.brain:
             if len(list(self.brain.keys())) < self.k:
                 action = [random.choice(list(range(self.actions)))]
@@ -54,8 +55,12 @@ class Episodic_Controller():
                 action = [int(torch.argmax(action))]
             #write new obervation only after kNN search
             self.write(obv)
-
         return action
+
+    def update_model(self, state_value_pairs):
+        print("pairs",state_value_pairs[0])
+        print("Keys:",len(self.brain.keys()))
+        pass
 
 #used for training agents with pure gradient methods
 class Agent_Controller():
