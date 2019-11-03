@@ -3,118 +3,80 @@ import datetime
 import numpy as np
 import torch
 import cv2
+import pygame
+from memory import Memory
+from embedder import Embedder
+pygame.init()
 
 ## Reinforcement Learning Coach
 ###
 ### Handles OpenAI Gym environments
 #
-
-class Embedder(torch.nn.Module):
-    def __init__(self):
-        super(Embedder, self).__init__()
-        self.embed = torch.nn.Sequential(
-            torch.nn.Conv2d(1, 32, 8, 2),
-            torch.nn.ELU(),
-            torch.nn.Conv2d(32, 64, 4, 2),
-            torch.nn.BatchNorm2d(64),
-            torch.nn.ELU(),
-            torch.nn.Conv2d(64, 128, 4, 2),
-            torch.nn.BatchNorm2d(128),
-            torch.nn.ELU(),
-            torch.nn.Conv2d(128, 512, 5),
-            torch.nn.ELU(),
-        )
-        self.decode = torch.nn.Sequential(
-            torch.nn.ConvTranspose2d(512, 128, 5),
-            torch.nn.BatchNorm2d(128),
-            torch.nn.ELU(),
-            torch.nn.ConvTranspose2d(128, 64, 4, 2),
-            torch.nn.BatchNorm2d(64),
-            torch.nn.ELU(),
-            torch.nn.ConvTranspose2d(64, 64, 4, 2),
-            torch.nn.ELU(),
-            torch.nn.ConvTranspose2d(64, 64, 4, 2),
-            torch.nn.ELU(),
-            torch.nn.ConvTranspose2d(64, 32, 4),
-            torch.nn.BatchNorm2d(32),
-            torch.nn.ELU(),
-            torch.nn.ConvTranspose2d(32, 1, 8),
-        )
-        self.optimizer = torch.optim.Adam(lr=1e-3, params=self.parameters())
-        self.train = []
-        self.targets = []
-        self.epochs = 2
-        self.count = 0
-        self.batch = 5
-
-    def forward(self,x):
-        y = self.embed(x)
-        train = self.decode(y)
-        self.train.append(train)
-        self.targets.append(x)
-        if self.count % self.batch == 0:
-            self.update_embedding()
-
-        preview = train.squeeze(0).squeeze(0).detach().numpy()
-        preview = cv2.resize(preview, (10 * 45, 10 * 45), interpolation=cv2.INTER_AREA)
-        cv2.imshow("state", preview)
-        cv2.waitKey(1)
-        #cv2.imshow("state", x.squeeze(0).squeeze(0).detach().numpy())
-        #cv2.waitKey(1)
-        self.count+=1
-        return y
-
-    def update_embedding(self):
-        train = torch.stack(self.train)
-        targets = torch.stack(self.targets)
-
-        for _ in range(self.epochs):
-            loss = torch.nn.functional.smooth_l1_loss(train, targets)
-            loss.backward(retain_graph=True)
-
-            self.optimizer.step()
-            self.optimizer.zero_grad()
-            self.train.clear()
-            self.targets.clear()
-
-
 class Coach():
-    def __init__(self, env, loss_fn, optim, n_agents, lr=0.1, target_agent=None, embed=False):
+    def __init__(self, env, loss_fn, optim, n_agents, embed=False, flatten=False):
 
         if n_agents < 1:
-            raise Exception("Needs at least 1 agent.")
+            raise Exception("Need at least 1 agent.")
+        if n_agents > 1:
+            raise NotImplementedError
 
         super(Coach, self).__init__()
         self.name = env
         self.n_agents = n_agents
         self.dones = [False for _ in range(n_agents)]
         self.length = 0
-        self.memory = []
+        self.memory = Memory(n_agents)
+        self.episode = []
         self.embedder = Embedder()
         self.embedding = embed
-
-        if not target_agent == None:
-            self.loss_fn=loss_fn
-            self.lr=lr
-            self.optim=optim(lr=self.lr, params=self.target_agent.params())
-            self.target_agent=target_agent
+        self.flatten = flatten
+        self.best_episode = []
+        self.p_obs = torch.zeros(1)
+        self.values = []
+        self.frameskip = 1
+        self.loss_fn=loss_fn
+        self.optim = optim
+        self.preview = False
+        self.norm = False
+        self.render = False
 
         #create environments
         self.envs = [gym.make(self.name) for _ in range(self.n_agents)]
         self.actions = self.envs[0].action_space.n
 
+    def set_agent(self, agent, lr):
+        self.agent = agent
+        self.optimizer = self.optim(lr=lr, params=self.agent.parameters())
+        self.memory.set_keys(agent.transition_keys)
+
     def preprocess_frame(self, state):
-        state = (np.sum(state, axis=2) / 3.0)/255
-        state = cv2.resize(state, (64, 64))
         state = torch.tensor(state).float()
-        if self.embedding:
-            state = self.embedder.forward(state.unsqueeze(0).unsqueeze(0))
+
+        if self.preview:
+            cv2.imshow("prev", state.np())
+            cv2.waitKey(1)
+        if self.norm:
+            mean = state.mean()
+            std = state.std()
+            state = (state - mean) / (std + 1e-10)
         return state
+
+    def replay_episode(self, episode):
+        for t in episode:
+            t = cv2.resize(t, (512, 512))
+            cv2.imshow("replay", t)
+            cv2.waitKey(2)
 
     #reset all environments
     def reset(self):
-        self.memory.clear()
-        return [env.reset() for env in self.envs]
+        if self.agent == None:
+            raise("Need agent")
+        states = []
+        for env in self.envs:
+            state=env.reset()
+            states.append(state)
+
+        return states
 
     def end(self):
         [env.close() for env in self.envs]
@@ -128,7 +90,10 @@ class Coach():
 
         #take step for each agent/environment
         for i,env in enumerate(self.envs):
-            obv, reward, done, info = env.step(actions[i])
+            reward = 0.0
+            for _ in range(self.frameskip):
+                obv, r, done, info = env.step(int(actions[i]))
+                reward += r
             obs.append(obv)
             rewards.append(reward)
             dones.append(done)
@@ -139,42 +104,86 @@ class Coach():
 
     #loss function for vanilla reinforce algorithm
     def reinforce(self, gamma):
-        raise NotImplementedError
+        loss = []
+
+        #return list of episodes
+        #   episodes: list of dicts
+        for episode in self.memory.get_episodes():
+            logits = episode["logit"]
+            values = episode["value"]
+            entropies = episode["entropy"]
+            expectation = torch.stack(logits) * torch.tensor(values) + (0.001*torch.tensor(entropies))
+            loss.append(expectation.sum())
+        self.optimizer.zero_grad()
+
+        loss = torch.stack(loss).mean().backward(retain_graph=True)
+        self.optimizer.step()
+        self.memory.reset()
+        return loss
+
+    def get_keys(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                break
+            if event.type == pygame.KEYDOWN:
+                # gets the key name
+                key = pygame.key.name(event.key)
+                if key == 'v':
+                    self.render = not self.render
+                    print("Render {}".format(self.render))
+                if key == 'r':
+                    self.replay_episode(self.best_episode)
 
     #generate single trajectory
-    def run_episode(self, agent, return_tau=False, render=False):
-        state = self.reset()[0]
+    def run_episode(self, render=False, gamma=0.9):
+        self.last_episode = []
+
+        state = self.reset()
         observation = self.preprocess_frame(state)
         steps = np.zeros(self.n_agents)
         rewards = np.expand_dims(np.zeros(self.n_agents),axis=0)
+        score = 0
 
         while True:
-            action = agent.step(observation)
-            state = self.step(action)
-            observation, reward, done, info = state
-            observation = self.preprocess_frame(observation[0])
+            self.get_keys()
+
+            #gets action/s and replay memory info
+            self.memory.add_value(("state",observation.view(-1)))
+
+            action, memory_info = self.agent.step(observation, self.memory)
+            obs, reward, done, info = self.step(action)
+            score += reward[0]
+
+            self.memory.add_value(("action",action[0]))
+            observation = self.preprocess_frame(obs)
+
             dones = [not d for d in done]
 
             steps += dones * np.ones(self.n_agents)
-            rewards += dones * np.array([reward for _ in range(self.n_agents)])
+            rewards += np.array(dones) * np.array(reward[0])
 
-            self.memory.append((observation, action, reward))
-
-            if render:
+            if (self.render or render) and steps % 1 == 0:
                 [env.render() for env in self.envs]
+
+            for i,r in enumerate(reward):
+                self.memory.add_value(("reward",reward[0]))
+
             if np.prod(done, 0):
+                #when episode is finished
+                self.memory.finish_episode(gamma)
                 break
 
-        return rewards, steps
+        #after series of episode, get episodes into own arrays
+        return int(score), int(steps)
 
     def discount(self, gamma):
         R = 0.0
-        values = []
-        rewards = list(reversed(list(zip(*self.memory))))[0]
-        states = list(reversed(list(zip(*self.memory))))[2]
 
-        for r in rewards:
-            R = r[0] + R * gamma
-            values.insert(0,R)
-        print(len(states), len(values))
-        return list(zip(states,values))
+        values = [[] for _ in range(self.n_agents)]
+        for step in reversed(self.memory.rewards):
+            for i,r in enumerate(step):
+                R = r + R * gamma
+                values[i].insert(0,R)
+
+        values = torch.tensor(np.array(values))
+        return values
