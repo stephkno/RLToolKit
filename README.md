@@ -36,7 +36,8 @@ coach = Coach(env="MsPacman-v4",
               batch_size=batch_size,
               preprocess_func=preprocess_frame,
               utility_func=reinforce,
-              )```
+              )
+```
 
 Construct an agent object
 
@@ -47,7 +48,7 @@ agent = Softmax_Agent(
                           batch=batch_size,
                           n_agents=n_agents
                     )
-                    ```  
+```  
       
 Run an episode
 
