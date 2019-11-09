@@ -1,7 +1,7 @@
 # RLToolKit
 
-A "Simple" Reinforcement Learning Toolkit
-A work in progress suite of reusable tools for reinforcement learning
+* A _"Simple"_ Reinforcement Learning Toolkit
+* A work in progress suite of reusable tools for reinforcement learning
 
 ## TO DO:
 *Agents: 
