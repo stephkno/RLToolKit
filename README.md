@@ -26,7 +26,8 @@ Coach object handles environment, buffer memory object, and optimzier.
  -Utility function
  -Preprocessor function (for pixel images)
  
-``coach = Coach(env="MsPacman-v4",
+```python
+coach = Coach(env="MsPacman-v4",
               loss_fn=reinforce,
               optim=torch.optim.RMSprop,
               n_agents=n_agents,
@@ -39,7 +40,7 @@ Coach object handles environment, buffer memory object, and optimzier.
 
 Construct an agent object
 
-``
+```python
 agent = Softmax_Agent(
                           model=torch.nn.Sequential(),
                           head=torch.nn.Sequential(),
@@ -50,10 +51,11 @@ agent = Softmax_Agent(
       
 Run an episode
 
-`` rewards, episode_steps = coach.run_episode(
+```python
+rewards, episode_steps = coach.run_episode(
             render=True,
             gamma=discount,
             max_steps=2500,
             explore=True
         )
-        ``
+ ``
