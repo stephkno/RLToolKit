@@ -60,3 +60,8 @@ rewards, episode_steps = coach.run_episode(
             explore=True
         )
  ```
+ 
+ Update agent parameters
+ ```python
+     loss = coach.learn(discount)
+```
