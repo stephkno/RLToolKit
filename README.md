@@ -4,12 +4,12 @@
 * A work in progress suite of reusable tools for deep reinforcement learning with PyTorch
 
 ## TO DO:
-*Agents: 
+* Agents: 
  - [x]Softmax Agent
  - []Value Agent
  - []Neural Episodic Controller
 
-*Value functions
+* Value functions
  - [x]Belleman
  - []Advantage Functions
 
