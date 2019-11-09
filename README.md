@@ -44,12 +44,14 @@ coach = Coach(env="MsPacman-v4",
 
 ## Construct an agent object
 
+- model: PyTorch Sequential
+- head: PyTorch Sequential (optional)
+
 ```python
 agent = Softmax_Agent(
                           model=torch.nn.Sequential(),
                           head=torch.nn.Sequential(),
                           batch=batch_size,
-                          n_agents=n_agents
                     )
 ```  
       
