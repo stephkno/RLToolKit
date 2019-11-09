@@ -109,8 +109,7 @@ agent = Softmax_Agent(
 
                               torch.nn.Linear(128, coach.actions),
                           ),
-                          batch=batch_size,
-                          n_agents=n_agents
+                          batch=batch_size
                     )
 
 coach.set_agent(agent, rate)
