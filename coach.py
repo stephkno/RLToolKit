@@ -15,7 +15,7 @@ pygame.init()
 
 # Reinforcement Learning Coach
 class Coach():
-    def __init__(self, env, loss_fn, optim, n_agents, gym=gym, preprocess_func=None, utility_func=None, embed=False, flatten=False, frameskip=1, batch_size=32):
+    def __init__(self, env, loss_fn, optim, gym=gym, preprocess_func=None, utility_func=None, embed=False, flatten=False, frameskip=1, batch_size=32):
 
         if utility_func == None:
             raise Exception("Need utility function")
