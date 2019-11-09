@@ -20,12 +20,12 @@
 
 **Coach object handles OpenAI Gym environment, the buffer memory object, and the optimzier.**
 
- -Environment name
- -Optimizer type
- -Frameskip: number of frames to skip per step
- -Batch size
- -Utility function
- -Preprocessor function (for pixel images)
+- Environment name
+- Optimizer type
+- Frameskip: number of frames to skip per step
+- Batch size
+- Utility function
+- Preprocessor function (for pixel images)
  
 ## Construct a coach object
  
