@@ -13,10 +13,7 @@ import copy
 import atexit
 pygame.init()
 
-## Reinforcement Learning Coach
-###
-### Handles OpenAI Gym environments
-#
+# Reinforcement Learning Coach
 class Coach():
     def __init__(self, env, loss_fn, optim, n_agents, gym=gym, preprocess_func=None, utility_func=None, embed=False, flatten=False, frameskip=1, batch_size=32):
 
