@@ -18,7 +18,7 @@
 
 # Example usage:
 
-**Coach object handles environment, buffer memory object, and optimzier.**
+**Coach object handles OpenAI Gym environment, the buffer memory object, and the optimzier.**
 
  -Environment name
  -Optimizer type
