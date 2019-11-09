@@ -3,10 +3,10 @@ import random
 
 
 class Softmax_Agent(torch.nn.Module):
-    def __init__(self, model=None, batch=128, n_agents=1, head=None):
+    def __init__(self, model=None, batch=128, head=None):
         super(Softmax_Agent, self).__init__()
         self.model = model
-        self.n_agents = n_agents
+        self.n_agents = 1
         self.batch = batch
         self.transition_keys = ["state", "action", "reward", "logit", "entropy", "value"]
         self.p_state = 0
