@@ -1,4 +1,4 @@
-### RLToolKit
+###### RLToolKit
 ##Reinforcement Learning Toolkit
 
 #A work in progress suite of reusable tools for reinforcement learning
@@ -16,9 +16,9 @@
 -[]Builtin Utility Functions
 -[]Builtin RGB Preprocessing Functions
 
-###Example usage:
+######Example usage:
 
-#Coach object handles environment, buffer memory object, and optimzier.
+##Coach object handles environment, buffer memory object, and optimzier.
 
  -Environment name
  -Optimizer type
