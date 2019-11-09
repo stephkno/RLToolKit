@@ -5,16 +5,16 @@
 
 ## TO DO:
 *Agents: 
--[x]Softmax Agent
--[]Value Agent
--[]Neural Episodic Controller
+* - [x]Softmax Agent
+* - []Value Agent
+* - []Neural Episodic Controller
 
 *Value functions
--[x]Belleman
--[]Advantage Functions
+* - [x]Belleman
+* - []Advantage Functions
 
--[]Builtin Utility Functions
--[]Builtin RGB Preprocessing Functions
+* - []Builtin Utility Functions
+* - []Builtin RGB Preprocessing Functions
 
 # Example usage:
 
