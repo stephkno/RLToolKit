@@ -1,23 +1,24 @@
-# RLToolKit
-Reinforcement Learning Toolkit
+### RLToolKit
+##Reinforcement Learning Toolkit
 
-A work in progress suite of reusable tools for reinforcement learning
+#A work in progress suite of reusable tools for reinforcement learning
 
-TO DO:
-  *Models: Actor/Critic, 
-  *Advantage Estimate Functions
-  *Utility Functions
-   -Q Learning
-   -A2C
-   -PPO
-   -NEC
-  *Coach handles multiple environments
-  
-Example usage:
+#TO DO:
+*Agents: 
+-[x]Softmax Agent
+-[]Value Agent
+-[]Neural Episodic Controller
 
-Construct a coach object with
+*Value functions
+-[x]Belleman
+-[]Advantage Functions
 
-Coach object handles environment, buffer memory object, and optimzier.
+-[]Builtin Utility Functions
+-[]Builtin RGB Preprocessing Functions
+
+###Example usage:
+
+#Coach object handles environment, buffer memory object, and optimzier.
 
  -Environment name
  -Optimizer type
@@ -25,6 +26,8 @@ Coach object handles environment, buffer memory object, and optimzier.
  -Batch size
  -Utility function
  -Preprocessor function (for pixel images)
+ 
+##Construct a coach object
  
 ```python
 coach = Coach(env="MsPacman-v4",
@@ -39,7 +42,7 @@ coach = Coach(env="MsPacman-v4",
               )
 ```
 
-Construct an agent object
+##Construct an agent object
 
 ```python
 agent = Softmax_Agent(
@@ -50,7 +53,7 @@ agent = Softmax_Agent(
                     )
 ```  
       
-Run an episode
+##Run an episode
 
 ```python
 rewards, episode_steps = coach.run_episode(
@@ -61,7 +64,7 @@ rewards, episode_steps = coach.run_episode(
         )
  ```
  
- Update agent parameters
+##Update agent parameters
  ```python
      loss = coach.learn(discount)
 ```
