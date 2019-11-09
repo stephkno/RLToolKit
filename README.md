@@ -18,7 +18,7 @@
 
 # Example usage:
 
-## Coach object handles environment, buffer memory object, and optimzier.
+**Coach object handles environment, buffer memory object, and optimzier.**
 
  -Environment name
  -Optimizer type
