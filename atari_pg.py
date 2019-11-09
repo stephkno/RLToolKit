@@ -15,7 +15,6 @@ hidden = 512
 layers = 2
 discount = 0.95
 batch_size = 64
-n_agents = 1
 update_interval = 10
 explore_interval = 10
 episodes = 25
@@ -74,7 +73,6 @@ def reinforce(gamma, memory, optimizer):
 coach = Coach(env="MsPacman-v4",
               loss_fn=reinforce,
               optim=torch.optim.RMSprop,
-              n_agents=n_agents,
               flatten=True,
               frameskip=1,
               batch_size=batch_size,
@@ -129,7 +127,13 @@ for epoch in range(1,epochs):
     avg_steps = []
 
     for episode in range(episodes):
-        rewards, episode_steps = coach.run_episode(render=(epoch%explore_interval==0), gamma=discount, max_steps=2500, explore=(not epoch%explore_interval==0))
+        rewards, episode_steps = coach.run_episode(
+            render=(epoch%explore_interval==0),
+            gamma=discount,
+            max_steps=2500,
+            explore=(not epoch%explore_interval==0)
+        )
+
         print("Ran {} steps. Returns: {}".format(episode_steps, rewards))
         steps += episode_steps
         game += 1
