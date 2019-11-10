@@ -13,28 +13,33 @@ import copy
 import atexit
 pygame.init()
 
-# Reinforcement Learning Coach
+## Reinforcement Learning Coach
+###
+### Handles OpenAI Gym environments
+#
 class Coach():
-    def __init__(self, env, loss_fn, optim, gym=gym, preprocess_func=None, utility_func=None, embed=False, flatten=False, frameskip=1, batch_size=32):
+    def __init__(self, env, loss_fn, optim, gym=gym, preprocess_func=None, utility_func=None, embed=False, flatten=False, frameskip=1, batch_size=32, cuda=False, ale=False, init_skip=0, mid_skip=0, caution=0.0, render_skip=1):
+
+        self.n_agents = 1
 
         if utility_func == None:
             raise Exception("Need utility function")
         if preprocess_func == None:
             raise Exception("Need preprocess function")
-        if n_agents < 1:
+        if self.n_agents < 1:
             raise Exception("Need at least 1 agent.")
-        if n_agents > 1:
+        if self.n_agents > 1:
             raise NotImplementedError
 
         super(Coach, self).__init__()
         print("Initializing Coach")
 
+        self.ale = ale
         self.name = env
         self.gym = gym
-        self.n_agents = n_agents
-        self.dones = [False for _ in range(n_agents)]
+        self.dones = [False for _ in range(self.n_agents)]
         self.length = 0
-        self.memory = Memory(n_agents)
+        self.memory = Memory(self.n_agents)
         self.episode = []
         self.embedder = Embedder()
         self.embedding = embed
@@ -46,18 +51,21 @@ class Coach():
         self.loss_fn=loss_fn
         self.optim = optim
         self.preview = False
+        self.single_step = False
         self.norm = True
         self.render = False
-        self.caution = 0.9
+        self.debug_render = False
+        self.caution = caution#0.95
         self.life = -1
         self.life = -1
-        self.init_skip = 70
-        self.render_frameskip = 1
-        self.mid_skip = 0
+        self.init_skip = init_skip#70
+        self.render_frameskip = render_skip
+        self.mid_skip = mid_skip#50
         self.steps = 0
         self.batch_size = batch_size
         self.preprocess_frame = preprocess_func
         self.update = utility_func
+        self.cuda = cuda
 
         atexit.register(self.end)
         #create environments
@@ -104,12 +112,14 @@ class Coach():
             raise("Need agent")
         states = []
         for env in self.envs:
+            env.render()
+
             state=env.reset()
             for _ in range(self.init_skip):
-                state,_,_,info = env.step(0)
+                state,_,_,info = env.step(1)
             states.append(state)
 
-        if "ale.lives" in info.keys():
+        if self.ale and ("ale.lives" in info.keys()):
             self.life = info["ale.lives"]
             self.life = self.life
         return states
@@ -130,12 +140,13 @@ class Coach():
             for _ in range(self.frameskip):
                 obv, r, done, info = env.step(int(actions[i]))
                 reward += r
+
             obs.append(obv)
             rewards.append(reward)
             dones.append(done)
             infos.append(info)
 
-        #send each return as separate vecs
+        #send each return separately
         return obs, rewards, dones, infos
 
     def get_keys(self):
@@ -146,36 +157,38 @@ class Coach():
                 # gets the key name
                 key = pygame.key.name(event.key)
                 if key == 'v':
-                    self.render = not self.render
-                    #print("Render {}".format(self.render))
+                    self.debug_render = not self.debug_render
+                    print("Render {}".format(self.debug_render))
                 if key == 'r':
                     self.replay_episode(self.best_episode)
                 if key == 'f':
                     if self.render_frameskip == 1:
                         self.render_frameskip = 10
+                        print("Frameskip True")
                     else:
                         self.render_frameskip = 1
+                        print("Frameskip False")
+                if key == 's':
+                    self.single_step = not self.single_step
+                    self.debug_render = self.single_step
+                    print("Render {}".format(self.debug_render))
+                    print("Single step {}".format(self.single_step))
 
 
     def render_env(self):
-        for env in self.envs:
-            env.render()
+        if self.steps % self.render_frameskip == 0:
+            for env in self.envs:
+                env.render()
 
     def learn(self, gamma):
         return self.update(gamma, self.memory, self.optimizer)
 
     def target_net_update(self):
+        print("Agent parameter update.")
         self.agent.load_state_dict(self.target_agent.state_dict())
 
-    #generate single trajectory
-    def run_episode(self, render=False, gamma=0.9, max_steps=100, explore=False):
+    def run_episode(self, render=False, gamma=0.99, max_steps=100, explore=False):
 
-        if explore:
-            mode = "Explore"
-        else:
-            mode = "Exploit"
-
-        print("Running {} episode.".format(mode))
         self.render = render
 
         for env in self.envs:
@@ -188,22 +201,20 @@ class Coach():
         steps = np.zeros(self.n_agents)
         rewards = np.expand_dims(np.zeros(self.n_agents),axis=0)
         score = 0
-        confidence = 0.0
+        confidence = 1.0
 
         for _ in range(max_steps):
             self.get_keys()
 
-            #gets action/s and replay memory infov
-            #self.memory.add_value(("state",observation.view(-1)))
+            action, memory_info = self.agent.step(observation, self.memory, confidence, self.render, explore, self.single_step)
 
-            action, memory_info = self.agent.step(observation, self.memory, confidence, self.render, explore)
+            confidence = memory_info['confidence']
 
             obs, reward, done, info = self.step(action)
             score += reward[0]
 
-            if self.render:
+            if self.render or self.debug_render:
                 self.render_env()
-                #print("Step {} Rewards {}".format(self.steps, score))
 
             observation = self.preprocess_frame(obs)
 
@@ -218,16 +229,13 @@ class Coach():
             steps += dones * np.ones(self.n_agents)
             rewards += np.array(dones) * np.array(reward[0])
 
-            for i,r in enumerate(reward):
-                if r > 0.0:
-                    r = 1.0
-                if r < 0.0:
-                    r = -1.0
+            if np.prod(done, 0) or (self.ale and info[0]["ale.lives"] < self.life):
+                reward[0] = -1.0
+                score -= 1
+                for i, r in enumerate(reward):
+                    self.memory.add_value(("reward", r))
 
-                self.memory.add_value(("reward",r))
-
-            if info[0]["ale.lives"] < self.life or np.prod(done, 0):
-                self.confidence = 0.0
+                self.confidence = 1.0
                 self.memory.finish_episode(gamma)
                 self.life -= 1
                 states = []
@@ -235,12 +243,16 @@ class Coach():
                     for _ in range(self.mid_skip):
                         state, _, _, info = env.step(0)
                     states.append(state)
+            else:
+                for i, r in enumerate(reward):
+                    self.memory.add_value(("reward", r))
+
+            if np.prod(done, 0) or self.life == 0:
                 break
 
-        #after series of episode, get episodes into own arrays
         self.agent.steps = 0
         return int(score), int(steps)
-        torch.tensor()
+
     def discount(self, gamma):
         R = 0.0
 
