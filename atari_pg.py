@@ -1,6 +1,6 @@
 #!/Users/stephen/miniconda3/bin/python
 from coach import Coach
-from agents import Softmax_Agent
+from agents.softmax_agent import Softmax_Agent
 import torch
 import gym
 import torch
@@ -15,32 +15,34 @@ hidden = 512
 layers = 2
 discount = 0.95
 batch_size = 64
-update_interval = 10
+update_interval = 1
 explore_interval = 10
-episodes = 25
+episodes = 8
 epochs = 20000
-rate = 0.01
+rate = 0.001
 game = 0
 steps = 0
+init = 1
+mid = 0
+cuda = False
 
 def preprocess_frame(state):
-    state = cv2.cvtColor(cv2.resize(np.array(state[0]), (80, 80)), cv2.COLOR_BGR2GRAY)
+    state = cv2.resize(np.array(state[0]), (64, 64)).mean(axis=2)
     state = torch.tensor(state).float() / 255
 
-    # state = torch.tensor(pstate) - state
-    mean = state.mean()
-    std = state.std()
-    state = (state - mean) / (std + 1e-10)
-
     swap = state
-    state = coach.p_obs - state
+    state = coach.p_obs + state
     coach.p_obs = swap
-
     coach.steps += 1
+
+    # state = torch.tensor(pstate) - state
+    #mean = state.mean()
+    #std = state.std()
+    #state = (state - mean) / (std + 1e-10)
 
     if coach.preview:
         preview = state.numpy()
-        preview = cv2.resize(preview, (256, 256), cv2.INTER_LINEAR)
+        preview = cv2.resize(preview, (256, 256))
         cv2.imshow("prev", preview)
         cv2.waitKey(1)
 
@@ -54,7 +56,7 @@ def reinforce(gamma, memory, optimizer):
         #   episodes: list of dicts
         for episode in memory.get_episodes():
             sample = list(zip(episode["logit"], episode["value"], episode["entropy"]))
-            sample = random.sample(sample, min(coach.batch_size, len(sample)))
+            sample = random.sample(sample, len(sample))
             logits, values, entropies = zip(*sample)
 
             expectation = torch.stack(logits) * torch.tensor(values)# + (0.001*torch.tensor(entropies))
@@ -70,7 +72,8 @@ def reinforce(gamma, memory, optimizer):
 
         return float(loss)
 
-coach = Coach(env="MsPacman-v4",
+#ready
+coach = Coach(env="SpaceInvaders-v4",
               loss_fn=reinforce,
               optim=torch.optim.RMSprop,
               flatten=True,
@@ -78,40 +81,45 @@ coach = Coach(env="MsPacman-v4",
               batch_size=batch_size,
               preprocess_func=preprocess_frame,
               utility_func=reinforce,
+              cuda=cuda,
+              init_skip=init,
+              mid_skip=mid,
+              caution=0.9,
+              ale=False,
+              render_skip=8
               )
 
 agent = Softmax_Agent(
                           model=torch.nn.Sequential(
-                              torch.nn.Conv2d(in_features, 16, 8, 4),
-                              torch.nn.Dropout2d(0.2),
+                              torch.nn.Conv2d(in_features, 8, 8, 2),
+                              #torch.nn.Dropout2d(0.2),
                               torch.nn.ReLU(),
 
-                              torch.nn.Conv2d(16, 25, 4, 2),
-                              torch.nn.Dropout2d(0.2),
+                              torch.nn.Conv2d(8, 16, 4, 2),
+                              #torch.nn.Dropout2d(0.2),
                               torch.nn.ReLU(),
 
-                              torch.nn.Conv2d(25, 64, 4, 1),
-                              torch.nn.Dropout2d(0.2),
+                              torch.nn.Conv2d(16, 16, 4, 1),
+                              #torch.nn.Dropout2d(0.2),
                               torch.nn.ReLU(),
 
-                              torch.nn.Conv2d(64, 64, 4, 1),
-                              torch.nn.Dropout2d(0.2),
+                              torch.nn.Conv2d(16, 32, 4, 2),
+                              #torch.nn.Dropout2d(0.2),
                               torch.nn.ReLU(),
+
                           ),
                           head=torch.nn.Sequential(
-                              torch.nn.Linear(256, 128),
-                              torch.nn.Tanh(),
+                              torch.nn.Linear(512, 512),
                               torch.nn.Dropout2d(0.2),
-
-                              torch.nn.Linear(128, 128),
                               torch.nn.Tanh(),
+                              torch.nn.Linear(512, coach.actions),
                               torch.nn.Dropout2d(0.2),
-
-                              torch.nn.Linear(128, coach.actions),
+                              torch.nn.Tanh(),
                           ),
                           batch=batch_size
                     )
 
+#steady
 coach.set_agent(agent, rate)
 coach.set_rate(rate)
 
@@ -120,17 +128,26 @@ coach.reset()
 episode_count = 0
 best = 0
 
+#go
 for epoch in range(1,epochs):
 
     avg_reward = []
     avg_steps = []
+    explore = not (epoch%explore_interval==0)
+
+    if explore:
+        mode = "Explore"
+    else:
+        mode = "Exploit"
+
+    print("{} mode.".format(mode))
 
     for episode in range(episodes):
         rewards, episode_steps = coach.run_episode(
-            render=(epoch%explore_interval==0),
+            render=False,
             gamma=discount,
             max_steps=2500,
-            explore=(not epoch%explore_interval==0)
+            explore=explore
         )
 
         print("Ran {} steps. Returns: {}".format(episode_steps, rewards))
