@@ -1,6 +1,6 @@
 # RLToolKit
 
-* A _"Simple"_ Reinforcement Learning Toolkit
+* A Reinforcement Learning Toolkit
 * A work in progress suite of reusable tools for deep reinforcement learning with PyTorch
 
 ## TO DO:
