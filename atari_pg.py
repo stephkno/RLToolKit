@@ -1,4 +1,3 @@
-#!/Users/stephen/miniconda3/bin/python
 from coach import Coach
 from agents.softmax_agent import Softmax_Agent
 import torch
