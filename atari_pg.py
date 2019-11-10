@@ -112,8 +112,6 @@ agent = Softmax_Agent(
                               torch.nn.Dropout2d(0.2),
                               torch.nn.Tanh(),
                               torch.nn.Linear(512, coach.actions),
-                              torch.nn.Dropout2d(0.2),
-                              torch.nn.Tanh(),
                           ),
                           batch=batch_size
                     )
