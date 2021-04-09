@@ -5,7 +5,7 @@
 
 ## TO DO:
 * Agents: 
-- [x]Softmax Agent
+- [x]Policy Gradients
 - [ ]Value Agent
 - [ ]Neural Episodic Controller
 
